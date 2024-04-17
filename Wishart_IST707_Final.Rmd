@@ -1,0 +1,505 @@
+---
+title: "IST707_Final"
+author: "John Wishart"
+date: "2023-11-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r  concrete data}
+
+
+
+
+```
+
+## Including Plots
+
+
+
+```{r}
+# support from this: https://www.kaggle.com/code/marianakralco/e-commerce-correspondence-analysis-k-means
+
+# install packages
+#install.packages("ggrepel") 
+
+install.packages("knitr")
+install.packages("kableExtra")
+install.packages("devtools")
+devtools::install_github("haozhu233/kableExtra")
+install.packages("FactoMineR")
+install.packages("factoextra")
+install.packages("cabootcrs")
+install.packages("lpsolve")
+install.packages("colorspace")
+#install.packages("hao")
+install.packages("tidyverse")
+install.packages("caretEnsemble")
+install.packages("doParallel")
+install.packages("PerformanceAnalytics")
+library(knitr)
+library(devtools)
+#library(hao)
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(lubridate)
+library(ggplot2)
+library(ggmap)
+library(maps)
+library(plotly)
+#library(ggrepel)
+library(knitr)
+library(kableExtra)
+library(FactoMineR)
+library(factoextra)
+library(cabootcrs)
+library(plotly)
+library(colorspace)
+library(lpSolve)
+library(corrplot)
+library(caretEnsemble)
+library(doParallel)
+library(PerformanceAnalytics)
+```
+
+```{r}
+
+
+
+
+```
+```{r}
+setwd("~/Desktop")
+concrete <- read.csv("concrete_data.csv")
+head(concrete)
+
+```
+
+```{r}
+corrplot(cor(concrete), method = "square")
+chart.Correlation(concrete)
+boxplot(concrete, main = "Concrete Boxplot")
+age_outliers <- which(concrete$Age > 100)
+concrete[age_outliers, 'age']
+
+# cleaning and processing
+# check for missing values
+sapply(concrete, function(x) sum(is.na(x)))
+#         Cement Blast.Furnace.Slag            Fly.Ash              Water 
+#                 0                  0                  0                  0 
+#  Superplasticizer   Coarse.Aggregate     Fine.Aggregate                Age 
+#                 0                  0                  0                  0 
+#          Strength 
+#                 0 
+# normalize
+normalize <- function(x) {
+  return(x-min(x))/(max(x)-(min(x)))
+}
+norm_concrete <- as.data.frame(lapply(concrete, normalize))
+summary(norm_concrete$Strength)
+#    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+#   0.00   21.38   32.12   33.49   43.80   80.27 
+head(norm_concrete)
+
+
+hist(concrete$Cement)
+hist(concrete$Blast.Furnace.Slag)
+hist(concrete$Fly.Ash)
+hist(concrete$Water)
+hist(concrete$Superplasticizer)
+hist(concrete$Coarse.Aggregate)
+hist(concrete$Fine.Aggregate)
+hist(concrete$Age)
+hist(concrete$Strength)
+
+# separate into train and test data for 70% as training data and 30% as test data.
+concrete_train1 <- norm_concrete[1:700, ]
+concrete_test1 <- norm_concrete[701:1030, ]
+
+```
+# Neural Networks 
+```{r}
+# Nueral Network
+install.packages("neuralnet")
+library(neuralnet)
+setwd("~/Desktop")
+concrete <- read.csv("concrete_data.csv")
+head(concrete)
+
+str(concrete)
+
+head(concrete)
+str(concrete)
+concrete_norm <- as.data.frame(lapply(concrete, normalize))
+
+summary(concrete_norm$strength)
+
+summary(concrete$Strength)
+head(concrete)
+
+hist(concrete$Strength)
+
+concrete_train <- concrete_norm[1:773, ]
+concrete_test <- concrete_norm[774:1030, ]
+
+
+
+
+```
+# Neural network
+```{r}
+# Neural Network
+setwd("~/Desktop")
+concrete <- read.csv("concrete_data.csv")
+str(concrete)
+
+# custom normalization function
+normalize <- function(x) { 
+   return((x - min(x)) / (max(x) - min(x)))
+}
+```
+
+```{r}
+# apply normalization to entire data frame
+concrete_norm <- as.data.frame(lapply(concrete, normalize))
+
+# confirm that the range is now between zero and one
+summary(concrete_norm$strength)
+hist(concrete_norm$Strength)
+
+# compared to the original minimum and maximum
+summary(concrete$strength)
+
+```
+
+```{r}
+
+# create training and test data
+concrete_train <- concrete_norm[1:773, ] # 75% of the data
+concrete_test <- concrete_norm[774:1030, ]
+
+## Step 3: Training a model on the data ----
+# train the neuralnet model
+library(neuralnet)
+
+# simple ANN with only a single hidden neuron
+set.seed(12345) # to guarantee repeatable results
+#concrete_model <- neuralnet(formula = Strength ~ cement + slag +
+   #                           ash + water + superplastic + 
+  #                            coarseagg + fineagg + age,
+  #                            data = concrete_train)
+
+concrete_model_train <- neuralnet(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age,
+                              concrete_train, linear.output = FALSE)
+plot(concrete_model_train, rep = NULL, x.entry = NULL, x.out = NULL,
+  radius = 0.15, arrow.length = 0.2, intercept = TRUE,
+  intercept.factor = 0.4, information = TRUE, information.pos = 0.1,
+  col.entry.synapse = "black", col.entry = "black",
+  col.hidden = "black", col.hidden.synapse = "black",
+  col.out = "black", col.out.synapse = "black",
+  col.intercept = "blue", fontsize = 12, dimension = 6,
+  show.weights = TRUE, file = NULL)
+
+concrete_model1 <- neuralnet(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, data = concrete_train)
+plot(concrete_model1)
+
+concrete_model_test <- neuralnet(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age,
+                              concrete_test, linear.output = FALSE)
+
+plot(concrete_model_test, rep = NULL, x.entry = NULL, x.out = NULL,
+  radius = 0.15, arrow.length = 0.2, intercept = TRUE,
+  intercept.factor = 0.4, information = TRUE, information.pos = 0.1,
+  col.entry.synapse = "black", col.entry = "black",
+  col.hidden = "black", col.hidden.synapse = "black",
+  col.out = "black", col.out.synapse = "black",
+  col.intercept = "blue", fontsize = 12, dimension = 6,
+  show.weights = TRUE, file = NULL)
+
+model_results <- compute(concrete_model_train, concrete_test[1:8])
+predicted_strength <- model_results$net.result
+cor(predicted_strength, concrete_test$Strength)
+# 0.7001293
+# cor() function to determine model accurac. correlation btw the predicted concrete_strength and the actual value. Helps with the linear relationship between the variables.
+
+concrete_model2 <- neuralnet(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, concrete_train, hidden = c(2,5))
+predicted_strength1 <- concrete_model2$net.result
+plot(concrete_model2)
+
+model_results2 <- compute(concrete_model2, concrete_test[1:8])
+predicted_strength2 <- model_results2$net.result
+cor(predicted_strength2, concrete_test$Strength)
+
+
+```
+
+```{r}
+cor(predicted_strength1, concrete_test$Strength)
+
+softplus <- function(x) {log(1+exp(x))}
+concrete_model4 <- neuralnet(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, concrete_test, hidden = c(7,7), act.fct = softplus)
+plot(concrete_model4)
+model_results4 <- compute(concrete_model4, concrete_test[1:8])
+predicted_strength4 <- model_results4$net.result
+cor(predicted_strength4, concrete_test$Strength)
+# [1,] 0.96
+
+
+
+
+
+
+
+```
+# Rpart decision trees
+
+```{r}
+# Decision Tree
+?rpart
+library(rpart)
+library(rpart.plot)
+concreteDT <- rpart(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, data=concrete_train)
+
+# , method = "strength", control=rpart.control(cp=0))
+summary(concreteDT)
+
+
+# DT #1                    
+#rsq.rpart(concreteDT)
+#plotcp(concreteDT)
+#rpart.plot(concreteDT)
+
+# DT #2
+library(rpart)
+library(rpart.plot)
+
+# Fit the initial decision tree
+concreteDT1 <- rpart(Strength ~ Cement + Blast.Furnace.Slag + Fly.Ash + Water + 
+                    Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, 
+                    data=concrete_train, 
+                    method="anova", 
+                    control=rpart.control(cp=.025)) # Set the cp value
+
+# Print a summary of the tree
+summary(concreteDT1)
+
+# Plot the complexity parameter against cross-validated error
+plotcp(concreteDT1)
+
+# Visualize the pruned tree
+rpart.plot(concreteDT1)
+
+
+```
+
+# SVM
+
+```{r}
+# SVM https://rpubs.com/subasish/595079
+install.packages("ggthemes")
+install.packages("psych")
+library(dplyr)
+library(PerformanceAnalytics)
+library(ggplot2)
+library(ggthemes)
+library(corrplot)
+library(car)
+library(psych)
+library(caret)
+library(caretEnsemble)
+library(doParallel)
+library(e1071)
+```
+
+```{r}
+setwd("~/Desktop")
+concrete <- read.csv("concrete_data.csv")
+
+glimpse(concrete)
+
+summary(concrete$Strength)
+hist(concrete$Strength)
+summary(concrete)
+
+head(concrete)
+
+corrplot(cor(concrete), method = "square")
+
+anyNA(concrete)
+
+boxplot(concrete[-9], main = "Concrete Variables Boxplot")
+
+age_outliers <- which(concrete$Age > 10)
+concrete[age_outliers, "Age"]
+
+par(mfrow = c(2,2))
+hist(concrete$Age)
+hist(concrete$Superplasticizer)
+hist(log(concrete$Age), col = "green")
+hist(log(concrete$Superplasticizer), col = "orange")
+
+concrete$Fly.Ash <- NULL
+head(concrete)
+
+head(concrete)
+
+set.seed(123)
+concrete_rand <- concrete[sample(1:nrow(concrete)), ]
+dim(concrete_rand)
+
+concrete$age <- log(concrete$Age)
+
+concrete$Superplasticizer <- log(concrete$Superplasticizer)
+concrete$Superplasticizer <- ifelse(concrete$Superplasticizer == -Inf, 0, concrete$Superplasticizer)
+
+head(concrete)
+
+set.seed(123)
+concrete_rand <- concrete[sample(1:nrow(concrete)), ]
+dim(concrete_rand)
+
+X = concrete_rand[, -8]
+y = concrete_rand[, 8]
+str(X)
+str(y)
+length(concrete_rand)
+```
+
+
+
+```{r}
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]}
+
+```
+
+
+```{r}
+simple_lm <- lm(Strength ~ ., data = concrete)
+vif(simple_lm)
+
+set.seed(123)
+concrete_rand <- concrete[sample(1:nrow(concrete)), ]
+dim(concrete_rand)
+
+
+set.seed(123)
+
+part.index <- createDataPartition(concrete_rand$Strength, p = 0.75, list = FALSE)
+length(concrete_rand$Strength)
+
+X_train <- X[part.index, ]
+X_test <- X[-part.index, ]
+y_train <- y[part.index]
+y_test <- y[-part.index]
+
+registerDoParallel(10) # here I'm using 10 cores from my computer. Originally used 4, but ramped up to 10 parellel processing. Made a significant difference.
+getDoParWorkers()
+# 10
+
+set.seed(123) # for replicability
+
+my_control <- trainControl(method = "cv", # for "cross-validation"
+                           number = 5, # number of k-folds
+                           savePredictions = "final",
+                           allowParallel = TRUE)
+
+set.seed(222)
+
+model_list1 <- caretList(X_train, 
+                        y_train,
+                        trControl = my_control, # remember, 5 fold cross validation + allowparallel
+                        methodList =  "svmRadial", 
+                        tuneList = NULL, # no manual hyperparameter tuning
+                        continue_on_fail = FALSE, # stops if something fails
+                        preProcess  = c("center","scale"))
+                        # as mentioned before, here we scale the dataset
+
+model_list1$svmRadial
+plot(model_list1$svmRadial)
+```
+
+
+```{r}
+pred_svm <- predict.train(model_list1$svmRadial, newdata = X_test)
+print(pred_svm)
+
+SVM = cor(pred_svm, y_test)
+print(SVM)
+                    
+
+svm_modelA1 <- svm(X_train,y_train)
+print(svm_modelA1)
+
+svm_modelA2 <- svm(X_test,y_test)
+print(svm_modelA2)
+
+
+pred <- predict(svm_modelA1, X_train)
+
+
+
+
+
+
+```
+
+# SVM 2
+
+```{r}
+# https://rpubs.com/mzc/mlwr_svm_concrete
+
+summary(concrete)
+
+conc_train = concrete[1:773, ]
+conc_test  = concrete[774:1030, ]
+#install.packages("kernlab")
+library(kernlab)
+set.seed(123) 
+model_svm = ksvm(data=conc_train, Strength ~ Cement + Blast.Furnace.Slag + Water + 
+                   Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, kernel="vanilladot")
+model_svm
+pred.1 = predict(model_svm, conc_test)
+cor(pred.1, conc_test$Strength)
+
+MAE = function(actual, predicted) {
+  mean(abs(actual - predicted))
+}
+MAE(pred.1, conc_test$Strength)
+
+summary(conc_test$Strength)
+
+model.rbf = ksvm(data=conc_train, Strength ~ Cement + Blast.Furnace.Slag + Water + 
+                   Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, 
+                 kernel="rbfdot") # <-- this is the Guassian RBF kernel
+pred.rbf = predict(model.rbf, conc_test)
+cor(pred.rbf, conc_test$Strength)
+
+MAE(pred.rbf, conc_test$Strength)
+
+kernelNames = c("vanilla", "rbf", "laplace", "tanh", "bessel", "anova")
+kernelMAEs = c()
+kernelCors = c()
+for(k in kernelNames) {
+  model.k = ksvm(data=conc_train,
+                 Strength ~ Cement + Blast.Furnace.Slag + Water + 
+                   Superplasticizer + Coarse.Aggregate + Fine.Aggregate + Age, 
+                 kernel=k)
+  pred.k = predict(model.k, conc_test)
+  mae = MAE(pred.k, conc_test$Strength)
+  kernelMAEs = c(kernelMAEs, round(mae, digits=3))
+  kernelCors = c(kernelCors, round(cor(pred.k, conc_test$Strength), digits=3))
+}
+
+data.frame(Kernel=kernelNames, MAE=kernelMAEs, Cor=kernelCors)
+```
